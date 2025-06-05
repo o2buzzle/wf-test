@@ -1,0 +1,45 @@
+name: "run-a-bunch-of-test"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  push:
+    branches: [master]
+
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Build type to use for this run"
+        required: true
+        type: choice
+        options:
+          - "Debug"
+          - "Release"
+      enable_unity:
+        description: "Enable unity build"
+        required: true
+        type: boolean
+
+concurrency:
+  group: "npu-modular-run-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  compute-input-values-on-events:
+    runs-on: ubuntu-latest
+    outputs:
+      build_type: ${{ steps.set-inputs.outputs.build_type }}
+      enable_unity: ${{ steps.set-inputs.outputs.enable_unity }}
+    steps:
+      - name: Set input values
+        id: set-inputs
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "build_type=${{ inputs.build_type }}" >> $GITHUB_OUTPUT
+            echo "enable_unity=${{ inputs.enable_unity }}" >> $GITHUB_OUTPUT
+          else
+            # fallbacks
+            echo "build_type=Release" >> $GITHUB_OUTPUT
+            echo "enable_unity=false" >> $GITHUB_OUTPUT
+          fi
